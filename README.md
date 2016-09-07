@@ -1,0 +1,2 @@
+#aip-flash
+青岛艾普智能仪器有限公司串口下载工具，配合Bootloader可自动升级STM32程序
