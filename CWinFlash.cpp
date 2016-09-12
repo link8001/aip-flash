@@ -60,8 +60,6 @@ void CWinFlash::KeyInit()
     btnGroup = new QButtonGroup;
     btnGroup->addButton(ui->KeyOpen, Qt::Key_A);
     btnGroup->addButton(ui->KeyClear,Qt::Key_B);
-    btnGroup->addButton(ui->KeyRun,  Qt::Key_C);
-    btnGroup->addButton(ui->KeySend, Qt::Key_D);
     btnGroup->addButton(ui->KeyFile, Qt::Key_E);
     connect(btnGroup,SIGNAL(buttonClicked(int)),this,SLOT(KeyJudge(int)));
 }
@@ -75,29 +73,14 @@ void CWinFlash::KeyJudge(int id)
 {
     switch (id) {
     case Qt::Key_A:
-        if (ui->KeyOpen->text().contains("打开串口")) {
+        if (ui->KeyOpen->text().contains("开始下载")) {
             ComInit();
         } else {
-            timer->stop();
-            com->close();
-            ui->KeyOpen->setText("打开串口");
+            ComQuit();
         }
         break;
     case Qt::Key_B:
         ui->textBrowser->clear();
-        break;
-    case Qt::Key_C:
-        if (com != NULL)
-            step = QUIT;
-        break;
-    case Qt::Key_D:
-        file = new QFile(ui->comboBox->currentText());
-        if (!file->open(QFile::ReadOnly)) {
-            SendMsg("打开文件失败\n");
-            return;
-        }
-        step = SYNC;
-        SendMsg("开始同步...   ");
         break;
     case Qt::Key_E:
         FileOpen();
@@ -170,12 +153,13 @@ void CWinFlash::ComInit()
         com->setFlowControl(QSerialPort::NoFlowControl);
         com->setDataTerminalReady(true);
         com->setRequestToSend(false);
-        ui->KeyOpen->setText("关闭串口");
+        ui->KeyOpen->setText("中断下载");
+        SendMsg("请重启单片机\n");
 
         timer->start(50);
-
         return;
     }
+    SendMsg("串口打开失败\n");
 }
 /******************************************************************************
   * version:    1.0
@@ -188,40 +172,49 @@ void CWinFlash::ComRead()
     QByteArray ack;
     if (com->bytesAvailable() > 0) {
         ack = com->readAll();
-    }
-    switch (ack.at(0)) {
-    case 'R':
-        break;
-    case 'C':
-        SendMsg("同步成功\n");
-        step = SEND;
-        break;
-    case 'A':
-        SendMsg("写入成功\n");
-        page++;
-        if (file->atEnd())
-            step = EXIT;
-        else
+
+        switch (ack.at(0)) {
+        case 'R':
+            file = new QFile(ui->comboBox->currentText());
+            if (!file->open(QFile::ReadOnly)) {
+                SendMsg("打开文件失败\n");
+                step = QUIT;
+                break;
+            }
+            SendMsg("正在同步设备......   ");
+            step = SYNC;
+            break;
+        case 'C':
+            SendMsg("同步成功\n");
             step = SEND;
-        break;
-    case 'N':
-        SendMsg("写入失败\n");
-        step = FAIL;
-        break;
-    case 'E':
-        SendMsg("写入完成\n");
-        step = FREE;
-        page = 0;
-        break;
-    case 'V':
-        ack = ack.mid(0,4);
-        ack.insert(0,"当前版本");
-        ack.append("\n");
-        SendMsg(ack);
-        step = FREE;
-        break;
-    default:
-        break;
+            break;
+        case 'A':
+            SendMsg("写入成功\n");
+            page++;
+            if (file->atEnd())
+                step = OVER;
+            else
+                step = SEND;
+            break;
+        case 'N':
+            SendMsg("写入失败\n");
+            step = FAIL;
+            break;
+        case 'E':
+            SendMsg("写入完成\n");
+            step = QUIT;
+            page = 0;
+            break;
+        case 'V':
+            ack = ack.mid(0,4);
+            ack.insert(0,"Bootloader版本");
+            ack.append("\n");
+            SendMsg(ack);
+            step = FREE;
+            break;
+        default:
+            break;
+        }
     }
 
     switch (step) {
@@ -235,22 +228,35 @@ void CWinFlash::ComRead()
         if (ack.isEmpty())
             break;
         FileRead();
-        SendMsg(QString("正在写入第%1帧数据...   ").arg(page+1).toUtf8());
+        SendMsg(QString("正在写入第%1帧数据......   ").arg(page+1, 2, 10, QChar('0')).toUtf8());
         com->write(text);
         break;
     case FAIL:
-        SendMsg(QString("重新写入第%1帧数据...   ").arg(page+1).toUtf8());
+        SendMsg(QString("重新写入第%1帧数据......   ").arg(page+1, 2, 10, QChar('0')).toUtf8());
         com->write(text);
         break;
-    case EXIT:
+    case OVER:
+        SendMsg("正在完成写入.....   ");
         com->write("E");
         break;
     case QUIT:
-        com->write("G");
+        ComQuit();
         step = FREE;
     default:
         break;
     }
+}
+/******************************************************************************
+  * version:    1.0
+  * author:     link
+  * date:       2016.08.18
+  * brief:      关闭串口
+******************************************************************************/
+void CWinFlash::ComQuit()
+{
+    timer->stop();
+    com->close();
+    ui->KeyOpen->setText("开始下载");
 }
 /******************************************************************************
   * version:    1.0

@@ -1,29 +1,27 @@
 #ifndef CWINFLASH_H
 #define CWINFLASH_H
 
-#include <QWidget>
-#include <QThread>
-#include <QDropEvent>
-#include <QDragEnterEvent>
-#include <QFileDialog>
-#include <QMimeData>
 #include <QTimer>
 #include <QDebug>
 #include <QWidget>
-#include <QCloseEvent>
-#include <QProcess>
+#include <QMimeData>
 #include <QSettings>
+#include <QDropEvent>
+#include <QFileDialog>
+#include <QCloseEvent>
 #include <QStringList>
 #include <QDataStream>
 #include <QButtonGroup>
+#include <QDragEnterEvent>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
+
 #define FREE 0x00
 #define SYNC 0x01
 #define READ 0x02
 #define SEND 0x03
 #define FAIL 0x04
-#define EXIT 0x05
+#define OVER 0x05
 #define QUIT 0x06
 namespace Ui {
 class CWinFlash;
@@ -48,6 +46,7 @@ private slots:
     void DatSave(void);
     void ComInit(void);
     void ComRead(void);
+    void ComQuit(void);
     void SendMsg(QByteArray msg);
 
     void FileRead(void);
