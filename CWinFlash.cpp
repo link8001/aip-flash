@@ -1,10 +1,19 @@
+/*******************************************************************************
+ * Copyright (c) 2016,青岛艾普智能仪器有限公司
+ * All rights reserved.
+ *
+ * version:     0.6
+ * author:      link
+ * date:        2016.08.18
+ * brief:       自动调试工具
+*******************************************************************************/
 #include "CWinFlash.h"
 #include "ui_CWinFlash.h"
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      构造
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       构造
 ******************************************************************************/
 CWinFlash::CWinFlash(QWidget *parent) :
     QWidget(parent),
@@ -18,20 +27,20 @@ CWinFlash::CWinFlash(QWidget *parent) :
     connect(timer,SIGNAL(timeout()),this,SLOT(ComRead()));
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      析构
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       析构
 ******************************************************************************/
 CWinFlash::~CWinFlash()
 {
     delete ui;
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      界面初始化
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       界面初始化
 ******************************************************************************/
 void CWinFlash::WinInit()
 {
@@ -50,10 +59,10 @@ void CWinFlash::WinInit()
     this->setStyleSheet(qss);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      按键初始化
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       按键初始化
 ******************************************************************************/
 void CWinFlash::KeyInit()
 {
@@ -64,10 +73,10 @@ void CWinFlash::KeyInit()
     connect(btnGroup,SIGNAL(buttonClicked(int)),this,SLOT(KeyJudge(int)));
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      按键功能
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       按键功能
 ******************************************************************************/
 void CWinFlash::KeyJudge(int id)
 {
@@ -90,25 +99,26 @@ void CWinFlash::KeyJudge(int id)
     }
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      读取设置
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       读取设置
 ******************************************************************************/
 void CWinFlash::DatInit()
 {
-    setting = new QSettings("default",QSettings::IniFormat);
+    setting = new QSettings("./default.ini",QSettings::IniFormat);
     ui->Box1->setCurrentText(setting->value("/Default/COM").toString());
+    ui->Box6->setChecked(setting->value("/Default/PROT").toBool());
     QStringList t = (setting->value("/Default/FILE").toString()).split("@@");
     ui->comboBox->addItems(t);
     step = 0;
     page = 0;
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      保存设置
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       保存设置
 ******************************************************************************/
 void CWinFlash::DatSave()
 {
@@ -116,13 +126,14 @@ void CWinFlash::DatSave()
     for (int i=0; i<ui->comboBox->count(); i++)
         t.append(ui->comboBox->itemText(i));
     setting->setValue("/Default/COM",ui->Box1->currentText());
+    setting->setValue("/Default/PROT",ui->Box6->isChecked());
     setting->setValue("/Default/FILE",t.join("@@"));
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      打开串口
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       打开串口
 ******************************************************************************/
 void CWinFlash::ComInit()
 {
@@ -162,10 +173,10 @@ void CWinFlash::ComInit()
     SendMsg("串口打开失败\n");
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      读取串口数据
+ * version:     1.0
+ * author:      link
+ * date:        2016.09.18
+ * brief:       读取串口数据
 ******************************************************************************/
 void CWinFlash::ComRead()
 {
@@ -175,6 +186,11 @@ void CWinFlash::ComRead()
 
         switch (ack.at(0)) {
         case 'R':
+            if (!ui->comboBox->currentText().endsWith(".bin")) {
+                SendMsg("请打开一个.bin文件\n");
+                step = QUIT;
+                break;
+            }
             file = new QFile(ui->comboBox->currentText());
             if (!file->open(QFile::ReadOnly)) {
                 SendMsg("打开文件失败\n");
@@ -202,14 +218,26 @@ void CWinFlash::ComRead()
             break;
         case 'E':
             SendMsg("写入完成\n");
-            step = QUIT;
+            step = PROT;
             page = 0;
             break;
+        case 'P':
+            SendMsg("加密成功\n");
+            step = QUIT;
+            break;
         case 'V':
-            ack = ack.mid(0,4);
-            ack.insert(0,"Bootloader版本");
-            ack.append("\n");
-            SendMsg(ack);
+            ack = ack.mid(1,3);
+            if (ack.toDouble()<0.5) {
+                ack.insert(0,"Bootloader版本V");
+                ack.append("    该版本无法使用加密功能\n");
+                SendMsg(ack);
+                ui->Box6->setChecked(false);
+                break;
+            } else {
+                ack.insert(0,"Bootloader版本V");
+                ack.append("\n");
+                SendMsg(ack);
+            }
             step = FREE;
             break;
         default:
@@ -239,6 +267,14 @@ void CWinFlash::ComRead()
         SendMsg("正在完成写入.....   ");
         com->write("E");
         break;
+    case PROT:
+        if (ui->Box6->isChecked()) {
+            SendMsg("正在加密程序.....   ");
+            com->write("P");
+        } else {
+            step = QUIT;
+        }
+        break;
     case QUIT:
         ComQuit();
         step = FREE;
@@ -247,10 +283,10 @@ void CWinFlash::ComRead()
     }
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      关闭串口
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       关闭串口
 ******************************************************************************/
 void CWinFlash::ComQuit()
 {
@@ -259,10 +295,10 @@ void CWinFlash::ComQuit()
     ui->KeyOpen->setText("开始下载");
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      显示数据
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       显示数据
 ******************************************************************************/
 void CWinFlash::SendMsg(QByteArray msg)
 {
@@ -270,10 +306,10 @@ void CWinFlash::SendMsg(QByteArray msg)
     ui->textBrowser->moveCursor(QTextCursor::End);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      读取一页数据
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       读取一页数据
 ******************************************************************************/
 void CWinFlash::FileRead(void)
 {
@@ -291,10 +327,10 @@ void CWinFlash::FileRead(void)
     text.insert(3,crc);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      打开文件
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       打开文件
 ******************************************************************************/
 void CWinFlash::FileOpen()
 {
@@ -306,10 +342,10 @@ void CWinFlash::FileOpen()
         FileAdd(fileName);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      添加文件
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       添加文件
 ******************************************************************************/
 void CWinFlash::FileAdd(QString fileName)
 {
@@ -332,10 +368,10 @@ void CWinFlash::FileAdd(QString fileName)
     ui->comboBox->setCurrentText(fileName);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      拖放效果
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       拖放效果
 ******************************************************************************/
 void CWinFlash::dropEvent(QDropEvent *e)
 {
@@ -348,10 +384,10 @@ void CWinFlash::dropEvent(QDropEvent *e)
     FileAdd(fileName);
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      拖放效果
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       拖放效果
 ******************************************************************************/
 void CWinFlash::dragEnterEvent(QDragEnterEvent *e)
 {
@@ -359,13 +395,16 @@ void CWinFlash::dragEnterEvent(QDragEnterEvent *e)
         e->acceptProposedAction();
 }
 /******************************************************************************
-  * version:    1.0
-  * author:     link
-  * date:       2016.08.18
-  * brief:      退出保存
+ * version:     1.0
+ * author:      link
+ * date:        2016.08.18
+ * brief:       退出保存
 ******************************************************************************/
 void CWinFlash::closeEvent(QCloseEvent *e)
 {
     DatSave();
     e->accept();
 }
+/*******************************************************************************
+ *                                  END
+*******************************************************************************/

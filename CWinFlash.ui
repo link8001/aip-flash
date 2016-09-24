@@ -41,12 +41,12 @@
       <item>
        <widget class="QGroupBox" name="groupBox_2">
         <property name="title">
-         <string>设置区</string>
+         <string>串口设置区</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
           <widget class="QWidget" name="widget" native="true">
            <layout class="QGridLayout" name="gridLayout">
@@ -204,6 +204,25 @@
        </widget>
       </item>
       <item>
+       <widget class="QGroupBox" name="groupBox_4">
+        <property name="title">
+         <string>程序设置区</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QCheckBox" name="Box6">
+           <property name="text">
+            <string>加密程序</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
        <widget class="QGroupBox" name="groupBox_3">
         <property name="title">
          <string>功能区</string>
@@ -258,36 +277,25 @@
     </widget>
    </item>
    <item>
-    <widget class="QWidget" name="widget_8" native="true">
-     <layout class="QVBoxLayout" name="verticalLayout_5">
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>显示区</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QGroupBox" name="groupBox">
-        <property name="title">
-         <string>显示区</string>
+       <widget class="QTextBrowser" name="textBrowser"/>
+      </item>
+      <item>
+       <widget class="QComboBox" name="comboBox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <layout class="QVBoxLayout" name="verticalLayout">
-         <item>
-          <widget class="QTextBrowser" name="textBrowser"/>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBox"/>
-         </item>
-        </layout>
        </widget>
       </item>
      </layout>

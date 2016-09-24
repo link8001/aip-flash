@@ -23,6 +23,7 @@
 #define FAIL 0x04
 #define OVER 0x05
 #define QUIT 0x06
+#define PROT 0x07
 namespace Ui {
 class CWinFlash;
 }
